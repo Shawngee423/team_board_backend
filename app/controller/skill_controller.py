@@ -1,75 +1,41 @@
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
-from app.database import get_db
-from app.models.skill import SkillCreate, SkillRead, SkillUpdate
-from app.services.skill_service import (
-    get_skill,
-    get_skills,
-    create_skill,
-    update_skill,
-    delete_skill,
-    get_skill_stats
-)
-from app.auth.dependency import get_current_admin_user
+from typing import List
+from uuid import UUID
+
+from app.db.database import get_session
+from app.models.skill import SkillInfo
+from app.schemas.skill import SkillCreate, SkillRead, SkillUpdate
+from app.services.skill_service import get_skills, get_skill, update_skill, create_skill, delete_skill
 
 skill_router = APIRouter()
 
+@skill_router.post("/", response_model=SkillRead)
+def create_skill_router(skill: SkillCreate, session: Session = Depends(get_session)):
+    db_skill = SkillInfo(**skill.model_dump())
+    return create_skill(session, db_skill)
+
 @skill_router.get("/", response_model=List[SkillRead])
-def read_skills(
-    category: Optional[str] = None,
-    active_only: bool = True,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    return get_skills(db, skip, limit, category, active_only)
+def read_skills_router(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+    return get_skills(session, skip=skip, limit=limit)
 
 @skill_router.get("/{skill_id}", response_model=SkillRead)
-def read_skill(skill_id: int, db: Session = Depends(get_db)):
-    skill = get_skill(db, skill_id)
+def read_skill_router(skill_id: int, session: Session = Depends(get_session)):
+    skill = get_skill(session, skill_id)
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
     return skill
 
-@skill_router.post("/", response_model=SkillRead, status_code=status.HTTP_201_CREATED)
-def create_new_skill(
-    skill_data: SkillCreate,
-    db: Session = Depends(get_db),
-    _=Depends(get_current_admin_user)
-):
-    skill = create_skill(db, skill_data)
-    if not skill:
-        raise HTTPException(status_code=400, detail="Skill name already exists")
-    return skill
-
-@skill_router.patch("/{skill_id}", response_model=SkillRead)
-def update_existing_skill(
-    skill_id: int,
-    skill_data: SkillUpdate,
-    db: Session = Depends(get_db),
-    _=Depends(get_current_admin_user)
-):
-    skill = update_skill(db, skill_id, skill_data)
-    if not skill:
+@skill_router.put("/{skill_id}", response_model=SkillRead)
+def update_skill_router(skill_id: int, skill: SkillUpdate, session: Session = Depends(get_session)):
+    db_skill = update_skill(session, skill_id, skill.dict(exclude_unset=True))
+    if not db_skill:
         raise HTTPException(status_code=404, detail="Skill not found")
-    return skill
+    return db_skill
 
 @skill_router.delete("/{skill_id}")
-def remove_skill(
-    skill_id: int,
-    db: Session = Depends(get_db),
-    _=Depends(get_current_admin_user)
-):
-    success = delete_skill(db, skill_id)
+def delete_skill_router(skill_id: int, session: Session = Depends(get_session)):
+    success = delete_skill(session, skill_id)
     if not success:
         raise HTTPException(status_code=404, detail="Skill not found")
-    return {"message": "Skill deleted"}
-
-@skill_router.get("/{skill_id}/stats")
-def get_skill_statistics(skill_id: int, db: Session = Depends(get_db)):
-    stats = get_skill_stats(db, skill_id)
-    if not stats:
-        raise HTTPException(status_code=404, detail="Skill not found")
-    return stats
+    return {"ok": True}

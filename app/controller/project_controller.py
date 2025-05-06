@@ -1,71 +1,70 @@
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
-from app.database import get_db
-from app.models.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.models.user import User
-from app.services.project_service import (
-    create_project,
-    get_project,
-    get_projects,
-    update_project,
-    delete_project,
-    get_user_projects
+from typing import List
+
+from app.db.database import get_session
+from app.models.project import ProjectInfo, ProjectComment
+from app.models.project_skill_link import ProjectSkillLink
+from app.schemas.project import (
+    ProjectCreate, ProjectRead, ProjectUpdate, ProjectWithSkills,
+    CommentCreate, CommentRead
 )
-from app.auth.dependency import get_current_user, verify_project_owner
+from app.services.project_service import get_projects, get_project, get_project_skills, add_comment, get_comments, \
+    add_skill_to_project, delete_project, update_project, create_project
 
 project_router = APIRouter()
 
-@project_router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
-async def create_new_project(
-    project_data: ProjectCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return create_project(db, project_data, current_user.id)
+@project_router.post("/", response_model=ProjectRead)
+def create_project_router(project: ProjectCreate, session: Session = Depends(get_session)):
+    db_project = ProjectInfo(**project.dict())
+    return create_project(session, db_project)
 
 @project_router.get("/", response_model=List[ProjectRead])
-def read_projects(
-    status: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    return get_projects(db, skip, limit, status)
+def read_projects_router(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+    return get_projects(session, skip=skip, limit=limit)
 
-@project_router.get("/me", response_model=List[ProjectRead])
-def read_my_projects(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return get_user_projects(db, current_user.id)
-
-@project_router.get("/{project_id}", response_model=ProjectRead)
-def read_project(project_id: int, db: Session = Depends(get_db)):
-    project = get_project(db, project_id)
+@project_router.get("/{project_id}", response_model=ProjectWithSkills)
+def read_project_router(project_id: int, session: Session = Depends(get_session)):
+    project = get_project(session, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return project
+    skills = get_project_skills(session, project_id)
+    return ProjectWithSkills(**project.dict(), required_skills=skills)
 
-@project_router.patch("/{project_id}", response_model=ProjectRead)
-def update_existing_project(
-    project_id: int,
-    project_data: ProjectUpdate,
-    db: Session = Depends(get_db),
-    _=Depends(verify_project_owner)  # 权限验证
-):
-    updated_project = update_project(db, project_id, project_data)
-    if not updated_project:
+@project_router.put("/{project_id}", response_model=ProjectRead)
+def update_project_router(project_id: int, project: ProjectUpdate, session: Session = Depends(get_session)):
+    db_project = update_project(session, project_id, project.dict(exclude_unset=True))
+    if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return updated_project
+    return db_project
 
 @project_router.delete("/{project_id}")
-def remove_project(
-    project_id: int,
-    db: Session = Depends(get_db),
-    _=Depends(verify_project_owner)  # 权限验证
-):
-    if not delete_project(db, project_id):
+def delete_project_router(project_id: int, session: Session = Depends(get_session)):
+    success = delete_project(session, project_id)
+    if not success:
         raise HTTPException(status_code=404, detail="Project not found")
-    return {"message": "Project deleted"}
+    return {"ok": True}
+
+@project_router.post("/{project_id}/comments", response_model=CommentRead)
+def create_comment_router(project_id: int, comment: CommentCreate, session: Session = Depends(get_session)):
+    db_comment = ProjectComment(project_id=project_id, **comment.dict())
+    return add_comment(session, db_comment)
+
+@project_router.get("/{project_id}/comments", response_model=List[CommentRead])
+def read_comments_router(project_id: int, skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+    return get_comments(session, project_id, skip=skip, limit=limit)
+
+@project_router.post("/{project_id}/skills/{skill_id}")
+def add_skill_to_project_router(
+    project_id: int,
+    skill_id: int,
+    headcount: int,
+    session: Session = Depends(get_session)
+):
+    project_skill = ProjectSkillLink(
+        project_id=project_id,
+        skill_id=skill_id,
+        headcount=headcount,
+        applied_number=0
+    )
+    return add_skill_to_project(session, project_skill)

@@ -1,82 +1,34 @@
-from typing import Optional
-
 from sqlmodel import Session, select
-from app.models.skill import Skill, SkillCreate, SkillUpdate
+from typing import List, Optional
+from app.models.skill import SkillInfo
 
-
-def get_skill(db: Session, skill_id: int):
-    return db.get(Skill, skill_id)
-
-
-def get_skill_by_name(db: Session, name: str):
-    return db.exec(select(Skill).where(Skill.name == name)).first()
-
-
-def get_skills(
-        db: Session,
-        skip: int = 0,
-        limit: int = 100,
-        category: Optional[str] = None,
-        active_only: bool = True
-):
-    query = select(Skill)
-
-    if category:
-        query = query.where(Skill.category == category)
-
-    if active_only:
-        query = query.where(Skill.is_active == True)
-
-    return db.exec(query.offset(skip).limit(limit)).all()
-
-
-def create_skill(db: Session, skill_data: SkillCreate):
-    # 检查名称是否已存在
-    if get_skill_by_name(db, skill_data.name):
-        return None
-
-    skill = Skill(**skill_data.dict())
-    db.add(skill)
-    db.commit()
-    db.refresh(skill)
+def create_skill(session: Session, skill: SkillInfo):
+    session.add(skill)
+    session.commit()
+    session.refresh(skill)
     return skill
 
+def get_skill(session: Session, skill_id: int) -> Optional[SkillInfo]:
+    return session.get(SkillInfo, skill_id)
 
-def update_skill(db: Session, skill_id: int, skill_data: SkillUpdate):
-    skill = db.get(Skill, skill_id)
-    if not skill:
-        return None
+def get_skills(session: Session, skip: int = 0, limit: int = 100) -> List[SkillInfo]:
+    statement = select(SkillInfo).offset(skip).limit(limit)
+    return session.exec(statement).all()
 
-    update_data = skill_data.dict(exclude_unset=True)
-
-    # 防止更新名称
-    if "name" in update_data:
-        del update_data["name"]
-
-    for key, value in update_data.items():
-        setattr(skill, key, value)
-
-    db.commit()
-    db.refresh(skill)
+def update_skill(session: Session, skill_id: int, skill_data: dict) -> Optional[SkillInfo]:
+    skill = session.get(SkillInfo, skill_id)
+    if skill:
+        for key, value in skill_data.items():
+            setattr(skill, key, value)
+        session.add(skill)
+        session.commit()
+        session.refresh(skill)
     return skill
 
-
-def delete_skill(db: Session, skill_id: int):
-    skill = db.get(Skill, skill_id)
-    if not skill:
-        return False
-
-    db.delete(skill)
-    db.commit()
-    return True
-
-
-def get_skill_stats(db: Session, skill_id: int):
-    skill = db.get(Skill, skill_id)
-    if not skill:
-        return None
-
-    return {
-        "user_count": len(skill.users),
-        "project_count": len(skill.projects)
-    }
+def delete_skill(session: Session, skill_id: int) -> bool:
+    skill = session.get(SkillInfo, skill_id)
+    if skill:
+        session.delete(skill)
+        session.commit()
+        return True
+    return False
