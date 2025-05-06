@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
@@ -27,7 +27,7 @@ def create_person_router(person: PersonCreate, session: Session = Depends(get_se
     return create_person(session, db_person)
 
 @person_router.get("/", response_model=List[PersonRead])
-def read_persons_router_router(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+def read_persons_router(skip: Optional[int] = None, limit: Optional[int] = None, session: Session = Depends(get_session)):
     return get_persons(session, skip=skip, limit=limit)
 
 @person_router.get("/{user_id}", response_model=PersonRead)

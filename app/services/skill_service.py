@@ -11,9 +11,13 @@ def create_skill(session: Session, skill: SkillInfo):
 def get_skill(session: Session, skill_id: int) -> Optional[SkillInfo]:
     return session.get(SkillInfo, skill_id)
 
-def get_skills(session: Session, skip: int = 0, limit: int = 100) -> List[SkillInfo]:
-    statement = select(SkillInfo).offset(skip).limit(limit)
-    return session.exec(statement).all()
+def get_skills(session: Session, skip: Optional[int] = None, limit: Optional[int] = None) -> List[SkillInfo]:
+    query = select(SkillInfo)
+
+    if skip is not None and limit is not None:
+        query = query.offset(skip).limit(limit)
+
+    return session.exec(query).all()
 
 def update_skill(session: Session, skill_id: int, skill_data: dict) -> Optional[SkillInfo]:
     skill = session.get(SkillInfo, skill_id)

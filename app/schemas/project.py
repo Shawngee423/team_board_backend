@@ -29,6 +29,7 @@ class CommentBase(BaseModel):
     comment_message: Optional[str] = None
     re_comment_id: Optional[int] = None
 
+
 class CommentCreate(CommentBase):
     pass
 

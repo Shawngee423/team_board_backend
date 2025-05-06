@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from app.db.database import get_session
@@ -16,7 +16,7 @@ def create_skill_router(skill: SkillCreate, session: Session = Depends(get_sessi
     return create_skill(session, db_skill)
 
 @skill_router.get("/", response_model=List[SkillRead])
-def read_skills_router(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+def read_skills_router(skip: Optional[int] = None, limit: Optional[int] = None, session: Session = Depends(get_session)):
     return get_skills(session, skip=skip, limit=limit)
 
 @skill_router.get("/{skill_id}", response_model=SkillRead)

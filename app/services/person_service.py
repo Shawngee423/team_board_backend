@@ -66,5 +66,5 @@ def add_skill_to_person(session: Session, person_skill: PersonSkillLink):
     return person_skill
 
 def get_person_skills(session: Session, user_id: int) -> List[SkillInfo]:
-    statement = select(SkillInfo).join(PersonSkillLink).where(PersonSkillLink.user_id == user_id)
+    statement = select(SkillInfo).join(PersonSkillLink, SkillInfo.skill_id == PersonSkillLink.skill_id).where(PersonSkillLink.user_id == user_id)
     return session.exec(statement).all()

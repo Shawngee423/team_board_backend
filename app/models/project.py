@@ -15,8 +15,8 @@ class ProjectInfo(SQLModel, table=True):
 class ProjectComment(SQLModel, table=True):
     __tablename__ = 'tb_project_comment'
     comment_id: Optional[int] = Field(default=None, primary_key=True)
-    project_id: Optional[int] = Field(default=None, nullable=True)
-    user_id: Optional[int] = Field(default=None, max_length=255, nullable=True)
+    project_id: Optional[int] = Field(default=None, nullable=False)
+    user_id: Optional[int] = Field(default=None, max_length=255, nullable=False)
     comment_time: Optional[datetime] = Field(default=None, nullable=True)
     comment_message: Optional[str] = Field(default=None, max_length=65535, nullable=True)
     re_comment_id: Optional[int] = Field(default=None, max_length=255, nullable=True)
