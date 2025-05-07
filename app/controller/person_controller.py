@@ -84,9 +84,4 @@ def add_skill_to_person_router(
     level: int,
     session: Session = Depends(get_session)
 ):
-    person_skill = PersonSkillLink(
-        user_id=user_id,
-        skill_id=skill_id,
-        level=level
-    )
-    return add_skill_to_person(session, person_skill)
+    return add_skill_to_person(session, user_id, skill_id, level)

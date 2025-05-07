@@ -30,7 +30,7 @@ def test_get_full_personal_info(session: Session, sample_person, sample_educatio
     # 添加技能
     skill = create_skill(session, sample_skill)
     person_skill = PersonSkillLink(user_id=person.user_id, skill_id=skill.skill_id, level=3)
-    add_skill_to_person(session, person_skill)
+    add_skill_to_person(session, person.user_id, skill.skill_id, 3)
 
     # 测试获取完整个人信息
     result = get_full_personal_info(session, person.user_id)

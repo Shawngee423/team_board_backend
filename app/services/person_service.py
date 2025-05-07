@@ -59,11 +59,33 @@ def get_job_experiences(session: Session, user_id: int) -> List[PersonJobExperie
     statement = select(PersonJobExperience).where(PersonJobExperience.user_id == user_id)
     return session.exec(statement).all()
 
-def add_skill_to_person(session: Session, person_skill: PersonSkillLink):
-    session.add(person_skill)
+def add_skill_to_person(session: Session, user_id: int, skill_id: int, level: int):
+    # 先查询是否已存在关联
+    existing_link = session.exec(
+        select(PersonSkillLink)
+        .where(PersonSkillLink.user_id == user_id)
+        .where(PersonSkillLink.skill_id == skill_id)
+    ).first()
+
+    if existing_link:
+        # 存在则更新等级
+        existing_link.level = level
+    else:
+        # 不存在则新增
+        new_link = PersonSkillLink(
+            user_id=user_id,
+            skill_id=skill_id,
+            level=level
+        )
+        session.add(new_link)
+
     session.commit()
-    session.refresh(person_skill)
-    return person_skill
+    now_link = session.exec(
+        select(PersonSkillLink)
+        .where(PersonSkillLink.user_id == user_id)
+        .where(PersonSkillLink.skill_id == skill_id)
+    ).first()
+    return now_link
 
 def get_person_skills(session: Session, user_id: int) -> List[SkillInfo]:
     statement = select(SkillInfo).join(PersonSkillLink, SkillInfo.skill_id == PersonSkillLink.skill_id).where(PersonSkillLink.user_id == user_id)

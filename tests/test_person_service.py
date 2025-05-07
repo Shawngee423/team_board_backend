@@ -105,15 +105,14 @@ def test_get_job_experiences(session: Session, sample_person, sample_job):
 def test_add_skill_to_person(session: Session, sample_person, sample_skill):
     created_person = create_person(session, sample_person)
     created_skill = create_skill(session, sample_skill)
-    person_skill = PersonSkillLink(user_id=created_person.user_id, skill_id=created_skill.skill_id, level=3)
-    result = add_skill_to_person(session, person_skill)
+    result = add_skill_to_person(session, created_person.user_id, created_skill.skill_id, 3)
     assert result.user_id == created_person.user_id
 
 def test_get_person_skills(session: Session, sample_person, sample_skill):
     created_person = create_person(session, sample_person)
     created_skill = create_skill(session, sample_skill)
     person_skill = PersonSkillLink(user_id=created_person.user_id, skill_id=created_skill.skill_id, level=3)
-    add_skill_to_person(session, person_skill)
+    add_skill_to_person(session, created_person.user_id, created_skill.skill_id, 3)
     skills = get_person_skills(session, created_person.user_id)
     assert len(skills) == 1
     assert skills[0].skill_name == "Python"
