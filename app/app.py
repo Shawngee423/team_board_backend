@@ -77,9 +77,5 @@ async def root():
 app.include_router(project_controller.project_router, prefix="/projects", tags=["projects"])
 app.include_router(skill_controller.skill_router, prefix="/skills", tags=["skills"])
 app.include_router(person_controller.person_router, prefix="/persons", tags=["persons"])
-
 app.include_router(blog_controller.blog_router, prefix="/blog", tags=["blog"])
-# @app.on_event("startup")
-# def on_startup():
-#     init_db()  # 生产环境建议使用迁移工具
 
